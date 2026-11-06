@@ -1,0 +1,50 @@
+name: "Triage Classifier Evals"
+description: >
+  Runs the customer-support triage prompt evaluation suite against a live LLM
+  and fails the job if the case pass rate drops below the threshold. Writes a
+  per-case report to the GitHub step summary and eval-results.json.
+
+inputs:
+  gemini-api-key:
+    description: "Gemini API key used to call the model under test"
+    required: true
+  model:
+    description: "Model to evaluate the prompt against"
+    required: false
+    default: "gemini-3.5-flash-lite"
+  threshold:
+    description: "Minimum fraction of cases that must pass (0.0-1.0)"
+    required: false
+    default: "1.0"
+  trials:
+    description: "Trials per case; >1 also catches nondeterministic flakiness"
+    required: false
+    default: "1"
+  working-directory:
+    description: "Directory containing the eval harness (package.json, prompt.txt, dataset.json)"
+    required: false
+    default: "."
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: "22"
+
+    # npm install rather than npm ci: this repo does not commit a lockfile.
+    - name: Install dependencies
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: npm install
+
+    - name: Run evals
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        GEMINI_API_KEY: ${{ inputs.gemini-api-key }}
+        EVAL_MODEL: ${{ inputs.model }}
+        EVAL_THRESHOLD: ${{ inputs.threshold }}
+        EVAL_TRIALS: ${{ inputs.trials }}
+        # GitHub provides GITHUB_STEP_SUMMARY env var to each step. Summary Markdown is appended to this file.
+      run: npm run eval

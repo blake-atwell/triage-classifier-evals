@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "eval": "tsc && node dist/eval.js"
+  },
   "dependencies": {
     "@google/genai": "1.50.1"
   },
